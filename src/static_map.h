@@ -59,13 +59,23 @@ typedef enum {
     STATIC_MAP_SLOT_DELETED    // was used, then removed (tombstone)
 } staticMapslotState_t; 
 
+typedef enum {
+    STATIC_MAP_CB_NEXT = 0, // Keep iterating
+    STATIC_MAP_CB_STOP,     // Stop iterating
+    STATIC_MAP_CB_ERASE,    // Erase this node and keep iterating
+} staticMapCbDo_t;
+
+typedef struct staticMapItem staticMapItem_t;
+
 /**
  * This item should be embedded into what ever struct that should be put in the map
  */
-typedef struct staticMapItem {
+struct staticMapItem {
     staticMapslotState_t state;
     uint32_t             key; // This is the map key
-} staticMapItem_t;
+    staticMapItem_t     *next;
+    staticMapItem_t     *prev;
+};
 
 /**
  * This is the actuall map object
@@ -73,7 +83,8 @@ typedef struct staticMapItem {
 typedef struct staticMap {
     staticMapItem_t **items;  // Pointer to an array of map item pointers
     size_t            length; // The size of the array
-    uint32_t          num_active_items;
+    staticMapItem_t  *tail;
+    staticMapItem_t  *head;
 } staticMap_t;
 
 /**
@@ -118,6 +129,14 @@ int32_t staticMapRemove(staticMap_t *map, staticMapItem_t *item);
  * Returns: staticMapErr_t
  */
 int32_t staticMapRemoveByKey(staticMap_t *map, uint32_t key);
+
+/**
+ * Loop throug all item in map and call the callback on each
+ * Input: Pointer to a static map instance
+ * Input: Callback function
+ * Returns: staticMapErr_t
+ */
+int32_t staticMapForEach(staticMap_t *map, int32_t (*callback)(staticMap_t *map, staticMapItem_t *item));
 
 /**
  * This is a macro that makes it more safe to initialize a static map

@@ -45,13 +45,16 @@ int32_t staticMapInit(staticMap_t *map, staticMapItem_t **itemsArray, size_t len
 
     map->items            = itemsArray;   // The user-provided array
     map->length           = length;
-    map->num_active_items = 0;
+    map->head             = NULL;
+    map->tail             = NULL;
 
     staticMapItem_t * item = first_item;
     for (uint32_t i = 0; i < length; i++) {
         map->items[i] = item;
         item->key     = 0;
         item->state   = STATIC_MAP_SLOT_EMPTY;
+        item->next    = NULL;
+        item->prev    = NULL;
         item = (staticMapItem_t*)((uint8_t*)item + item_size);
     }
 
@@ -73,7 +76,22 @@ staticMapItem_t *staticMapInsertAndGet(staticMap_t *map, uint32_t key) {
             // Found an empty or tombstoned slot, use it
             slot->state  = STATIC_MAP_SLOT_IN_USE;
             slot->key = key;
-            map->num_active_items++;
+
+            // Insert at the HEAD (newest)
+            slot->prev = map->head;
+            slot->next = NULL;
+
+            if (map->head) {
+                map->head->next = slot;
+            }
+
+            map->head = slot;
+
+            // If there was no tail, this is also the tail (oldest)
+            if (!map->tail) {
+                map->tail = slot;
+            }
+
             return slot;
         }
         else if (slot->state == STATIC_MAP_SLOT_IN_USE && slot->key == key) {
@@ -126,9 +144,24 @@ int32_t staticMapRemove(staticMap_t *map, staticMapItem_t *item) {
         return STATIC_MAP_UNUSED_ERASE;
     }
 
-    item->state = STATIC_MAP_SLOT_DELETED;
+    // Unlink from the active list
+    if (item->prev) {
+        item->prev->next = item->next;
+    } else {
+        // If no prev, this was the tail
+        map->tail = item->next;
+    }
 
-    map->num_active_items--;
+    if (item->next) {
+        item->next->prev = item->prev;
+    } else {
+        // If no next, this was the head
+        map->head = item->prev;
+    }
+
+    item->state = STATIC_MAP_SLOT_DELETED;
+    item->next  = NULL;
+    item->prev  = NULL;
 
     // TODO, we could add some kind of cleanup routine here to get rid of tombstones
 
@@ -153,11 +186,60 @@ int32_t staticMapRemoveByKey(staticMap_t *map, uint32_t key) {
         if (slot->state == STATIC_MAP_SLOT_IN_USE && slot->key == key) {
             // Found the key; mark this slot as deleted
             slot->state = STATIC_MAP_SLOT_DELETED;
-            map->num_active_items--;
+
+            // Unlink from the active list
+            if (slot->prev) {
+                slot->prev->next = slot->next;
+            } else {
+                // If no prev, this was the tail
+                map->tail = slot->next;
+            }
+
+            if (slot->next) {
+                slot->next->prev = slot->prev;
+            } else {
+                // If no next, this was the head
+                map->head = slot->prev;
+            }
+
+            slot->state = STATIC_MAP_SLOT_DELETED;
+            slot->next  = NULL;
+            slot->prev  = NULL;
+
             return STATIC_MAP_SUCCESS;
         }
         index = LINEAR_PROBE(index, map->length);
     }
 
     return STATIC_MAP_INVALID_KEY;
+}
+
+int32_t staticMapForEach(staticMap_t *map, int32_t (*callback)(staticMap_t *map, staticMapItem_t *item)) {
+    if (map == NULL || callback == NULL) {
+        return STATIC_MAP_NULL_ERROR;
+    }
+
+    staticMapItem_t *current = map->tail;
+    while (current != NULL) {
+        int32_t cb_res = callback(map, current);
+        switch(cb_res) {
+            case STATIC_MAP_CB_NEXT:
+                current = current->next;
+                break;
+            case STATIC_MAP_CB_STOP:
+                return STATIC_MAP_SUCCESS;
+            case STATIC_MAP_CB_ERASE: {
+                staticMapItem_t *tmp = current;
+                current = current->next;
+                // Erase this item from the map
+                if ((cb_res = staticMapRemove(map, tmp)) != STATIC_MAP_SUCCESS) {
+                    return cb_res;
+                }
+            } break;
+            default:
+               return cb_res;
+        }
+    }
+
+    return STATIC_MAP_SUCCESS;
 }

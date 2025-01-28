@@ -4,6 +4,7 @@
 #define NUM_ITEMS_IN_MAP 10
 #define FIRST_ITEM 25
 #define SECOND_ITEM 15
+#define THIRD_ITEM 32
 
 typedef struct {
     uint32_t data;
@@ -63,6 +64,21 @@ static uint32_t removeItem(staticMap_t *map, myItem_t *item) {
     return result;
 }
 
+static int32_t mapItemCb(staticMap_t *map, staticMapItem_t *map_item) {
+    myItem_t * my_item = CONTAINER_OF(map_item, myItem_t, node);
+    printf("Static Map for each item data %u\n", my_item->data);
+    return STATIC_MAP_CB_NEXT;
+}
+
+static int32_t mapItemEraseCb(staticMap_t *map, staticMapItem_t *map_item) {
+    myItem_t * my_item = CONTAINER_OF(map_item, myItem_t, node);
+    printf("Static Map for each erase item data %u\n", my_item->data);
+    if (my_item->node.key == FIRST_ITEM) {
+        return STATIC_MAP_CB_ERASE;
+    }
+    return STATIC_MAP_CB_NEXT;
+}
+
 int main(void) {
     int32_t result = STATIC_MAP_INIT(my_map, map_array, NUM_ITEMS_IN_MAP, my_item_map);
     printf("Static Map inti result %i\n", result);
@@ -89,6 +105,17 @@ int main(void) {
     printf("Static Map new item key %u\n", new_item->node.key);
     printf("Static Map new item data %u\n", new_item->data);
 
+    // Add a third item
+    new_item = insertDataItem(&my_map, 1337, THIRD_ITEM);
+
+    if (new_item == NULL) {
+        printf("Static insert failed!\n");
+        return 1;
+    }
+
+    printf("Static Map new item key %u\n", new_item->node.key);
+    printf("Static Map new item data %u\n", new_item->data);
+
     // Find an item
     myItem_t * find_item = findItem(&my_map, FIRST_ITEM);
 
@@ -102,7 +129,7 @@ int main(void) {
 
     // Find an item
     uint32_t data = 0;
-    result =getDataFromItem(&my_map, &data, FIRST_ITEM);
+    result = getDataFromItem(&my_map, &data, FIRST_ITEM);
 
     if (result != STATIC_MAP_SUCCESS) {
         printf("Static get data failed!\n");
@@ -110,6 +137,12 @@ int main(void) {
     }
 
     printf("Static Map data %u\n", data);
+
+    result = staticMapForEach(&my_map, mapItemCb);
+    if (result != STATIC_MAP_SUCCESS) {
+        printf("For Each failed!\n");
+        return 1;
+    }
 
     // Remove an item item
     result = removeItemByKey(&my_map, FIRST_ITEM);
@@ -125,6 +158,12 @@ int main(void) {
 
     if (find_erased_item != NULL) {
         printf("Static find erased item failed!\n");
+        return 1;
+    }
+
+    result = staticMapForEach(&my_map, mapItemCb);
+    if (result != STATIC_MAP_SUCCESS) {
+        printf("For Each failed!\n");
         return 1;
     }
 
@@ -155,6 +194,62 @@ int main(void) {
         return 1;
     }
     printf("Erase of item %u success\n", SECOND_ITEM);
+
+    result = staticMapForEach(&my_map, mapItemCb);
+    if (result != STATIC_MAP_SUCCESS) {
+        printf("For Each failed!\n");
+        return 1;
+    }
+
+    // Remove an item item
+    result = removeItemByKey(&my_map, THIRD_ITEM);
+
+    if (result != STATIC_MAP_SUCCESS) {
+        printf("Static remove failed!\n");
+        return 1;
+    }
+    printf("Erase of item %u success\n", FIRST_ITEM);
+
+    result = staticMapForEach(&my_map, mapItemCb);
+    if (result != STATIC_MAP_SUCCESS) {
+        printf("For Each failed!\n");
+        return 1;
+    }
+
+    // Add a first item
+    new_item = insertDataItem(&my_map, 100, SECOND_ITEM);
+
+    if (new_item == NULL) {
+        printf("Static insert failed!\n");
+        return 1;
+    }
+
+    printf("Static Map new item key %u\n", new_item->node.key);
+    printf("Static Map new item data %u\n", new_item->data);
+
+    // Add a first item
+    new_item = insertDataItem(&my_map, 57, FIRST_ITEM);
+
+    if (new_item == NULL) {
+        printf("Static insert failed!\n");
+        return 1;
+    }
+
+    printf("Static Map new item key %u\n", new_item->node.key);
+    printf("Static Map new item data %u\n", new_item->data);
+
+
+    result = staticMapForEach(&my_map, mapItemEraseCb);
+    if (result != STATIC_MAP_SUCCESS) {
+        printf("For Each failed!\n");
+        return 1;
+    }
+
+    result = staticMapForEach(&my_map, mapItemEraseCb);
+    if (result != STATIC_MAP_SUCCESS) {
+        printf("For Each failed!\n");
+        return 1;
+    }
 
     return result;
 }
