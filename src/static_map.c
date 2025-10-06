@@ -243,3 +243,18 @@ int32_t staticMapForEach(staticMap_t *map, int32_t (*callback)(staticMap_t *map,
 
     return STATIC_MAP_SUCCESS;
 }
+
+int32_t staticMapGetNumItems(staticMap_t *map) {
+    if (map == NULL) {
+        return STATIC_MAP_NULL_ERROR;
+    }
+
+    int32_t count = 0;
+    staticMapItem_t *current = map->tail;
+    while (current != NULL) {
+        count++;
+        current = current->next;
+    }
+
+    return count;
+}

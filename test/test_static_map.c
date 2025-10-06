@@ -83,6 +83,14 @@ int main(void) {
     int32_t result = STATIC_MAP_INIT(my_map, map_array, NUM_ITEMS_IN_MAP, my_item_map);
     printf("Static Map inti result %i\n", result);
 
+    // Test: map should be empty after init
+    int32_t num_items = staticMapGetNumItems(&my_map);
+    if (num_items != 0) {
+        printf("Test failed: Map should be empty after init, got %i items\n", num_items);
+        return 1;
+    }
+    printf("Test passed: Map is empty after init (0 items)\n");
+
     // Add a first item
     myItem_t * new_item = insertDataItem(&my_map, 100, SECOND_ITEM);
 
@@ -93,6 +101,14 @@ int main(void) {
 
     printf("Static Map new item key %u\n", new_item->node.key);
     printf("Static Map new item data %u\n", new_item->data);
+
+    // Test: map should have 1 item
+    num_items = staticMapGetNumItems(&my_map);
+    if (num_items != 1) {
+        printf("Test failed: Map should have 1 item, got %i items\n", num_items);
+        return 1;
+    }
+    printf("Test passed: Map has 1 item\n");
 
     // Add a second item
     new_item = insertDataItem(&my_map, 110, FIRST_ITEM);
@@ -115,6 +131,14 @@ int main(void) {
 
     printf("Static Map new item key %u\n", new_item->node.key);
     printf("Static Map new item data %u\n", new_item->data);
+
+    // Test: map should have 3 items
+    num_items = staticMapGetNumItems(&my_map);
+    if (num_items != 3) {
+        printf("Test failed: Map should have 3 items, got %i items\n", num_items);
+        return 1;
+    }
+    printf("Test passed: Map has 3 items\n");
 
     // Find an item
     myItem_t * find_item = findItem(&my_map, FIRST_ITEM);
@@ -152,6 +176,14 @@ int main(void) {
         return 1;
     }
     printf("Erase of item %u success\n", FIRST_ITEM);
+
+    // Test: map should have 2 items after removing one
+    num_items = staticMapGetNumItems(&my_map);
+    if (num_items != 2) {
+        printf("Test failed: Map should have 2 items after removal, got %i items\n", num_items);
+        return 1;
+    }
+    printf("Test passed: Map has 2 items after removal\n");
 
     // Find an item
     myItem_t * find_erased_item = findItem(&my_map, FIRST_ITEM);
@@ -251,5 +283,31 @@ int main(void) {
         return 1;
     }
 
+    // Test: map should have 1 item remaining
+    num_items = staticMapGetNumItems(&my_map);
+    if (num_items != 1) {
+        printf("Test failed: Map should have 1 item remaining, got %i items\n", num_items);
+        return 1;
+    }
+    printf("Test passed: Map has 1 item remaining\n");
+
+    // Remove an item item
+    result = removeItemByKey(&my_map, SECOND_ITEM);
+
+    if (result != STATIC_MAP_SUCCESS) {
+        printf("Static remove failed!\n");
+        return 1;
+    }
+    printf("Erase of item %u success\n", SECOND_ITEM);
+
+    // Test: map should have 0 item remaining
+    num_items = staticMapGetNumItems(&my_map);
+    if (num_items != 0) {
+        printf("Test failed: Map should have 0 item remaining, got %i items\n", num_items);
+        return 1;
+    }
+    printf("Test passed: Map has 0 item remaining\n");
+
+    printf("\nAll tests passed!\n");
     return result;
 }
