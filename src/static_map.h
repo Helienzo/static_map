@@ -139,6 +139,13 @@ int32_t staticMapRemoveByKey(staticMap_t *map, uint32_t key);
 int32_t staticMapForEach(staticMap_t *map, int32_t (*callback)(staticMap_t *map, staticMapItem_t *item));
 
 /**
+ * Get the number of items in the map
+ * Input: Pointer to a static map instance
+ * Returns: Number of items in the map, STATIC_MAP_NULL_ERROR on error
+ */
+int32_t staticMapGetNumItems(staticMap_t *map);
+
+/**
  * This is a macro that makes it more safe to initialize a static map
  */
 #define STATIC_MAP_INIT(map, array, length, list) \
